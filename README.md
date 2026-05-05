@@ -45,7 +45,7 @@ See `docker-compose.yaml` for complete list of configurable options.
 
 ## 📂 Volumes
 
-- `./rootfs/data/dokploy` - Data storage
+- `./volumes/data/dokploy` - Data storage
 
 ## 🔍 Logging
 
