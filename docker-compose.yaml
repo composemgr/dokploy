@@ -17,6 +17,8 @@ services:
     logging: *default-logging
     environment:
       TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: dokploy-app
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
     ports:
       - "172.17.0.1:3000:3000"
     volumes:
@@ -24,8 +26,30 @@ services:
       - "/var/run/docker.sock:/var/run/docker.sock"
     networks:
       - dokploy
+      - proxy
+      - cloudflare
+    labels:
+      - 'traefik.enable=true'
+      - 'cloudflare.enable=true'
+      - 'traefik.docker.network=proxy'
+      - 'cloudflare.service=http://dokploy-app:3000'
+      - 'cloudflare.hostname=dokploy.${CLOUDFLARE_ZONE_NAME:-}'
+      - 'traefik.http.routers.dokploy-app.entrypoints=http'
+      - 'traefik.http.routers.dokploy-app-secure.tls=true'
+      - 'traefik.http.routers.dokploy-app.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.middlewares.dokploy-app-https-redirect.redirectscheme.scheme=https'
+      - 'traefik.http.routers.dokploy-app.middlewares=dokploy-app-https-redirect'
+      - 'traefik.http.routers.dokploy-app-secure.entrypoints=https'
+      - 'traefik.http.routers.dokploy-app-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.routers.dokploy-app-secure.tls.certresolver=cloudflare'
+      - 'traefik.http.routers.dokploy-app-secure.service=dokploy-app'
+      - 'traefik.http.services.dokploy-app.loadbalancer.server.port=3000'
 
 networks:
   dokploy:
     name: dokploy
     external: false
+  proxy:
+    external: true
+  cloudflare:
+    external: true
