@@ -1,0 +1,47 @@
+name: dokploy
+x-logging: &default-logging
+  options:
+    max-size: '5m'
+    max-file: '1'
+  driver: json-file
+
+services:
+  app:
+    image: dokploy/dokploy:latest
+    container_name: dokploy-app
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
+    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: dokploy-app
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
+      SKIP_TRAEFIK: 'true'
+    volumes:
+      - './volumes/data/dokploy:/var/lib/dokploy/application:z'
+      - '/var/run/docker.sock:/var/run/docker.sock:ro'
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      - 'traefik.http.routers.dokploy-app.entrypoints=http'
+      - 'traefik.http.routers.dokploy-app.rule=Host(`${BASE_HOST_NAME:-$HOSTNAME}`)'
+      - 'traefik.http.routers.dokploy-app.middlewares=dokploy-app-https-redirect'
+      - 'traefik.http.middlewares.dokploy-app-https-redirect.redirectscheme.scheme=https'
+      - 'traefik.http.routers.dokploy-app-secure.entrypoints=https'
+      - 'traefik.http.routers.dokploy-app-secure.rule=Host(`${BASE_HOST_NAME:-$HOSTNAME}`)'
+      - 'traefik.http.routers.dokploy-app-secure.tls.certresolver=cloudflare'
+      - 'traefik.http.routers.dokploy-app-secure.service=dokploy-app'
+      - 'traefik.http.services.dokploy-app.loadbalancer.server.port=3000'
+    networks:
+      - dokploy
+      - traefik
+
+
+networks:
+  dokploy:
+    name: dokploy
+    external: false
+  traefik:
+    external: true
