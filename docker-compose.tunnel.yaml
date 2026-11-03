@@ -19,6 +19,12 @@ services:
       CONTAINER_NAME: dokploy-app
       HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
       SKIP_TRAEFIK: 'true'
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -fs http://localhost:3000/api/trpc/settings.health || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     volumes:
       - './volumes/data/dokploy:/var/lib/dokploy/application:z'
       - '/var/run/docker.sock:/var/run/docker.sock:ro'
